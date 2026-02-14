@@ -1,0 +1,5 @@
+name = "Chatbot Extension"
+type = "theme"
+
+[theme]
+name = "Chatbot Theme Extension"

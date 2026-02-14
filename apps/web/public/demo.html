@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chatbot Demo Store</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+            padding: 40px;
+            line-height: 1.6;
+            max-width: 800px;
+            mx-auto;
+        }
+
+        .product {
+            border: 1px solid #ddd;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        button {
+            background: black;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>My Awesome E-commerce Store</h1>
+    <p>This is a demo page to test the embedded chatbot.</p>
+
+    <div class="product">
+        <h2>Cool T-Shirt</h2>
+        <p>$29.99</p>
+        <button>Add to Cart</button>
+    </div>
+
+    <!-- Chatbot Widget Integration -->
+    <script>
+        window.ChatbotConfig = {
+            shopId: "demo-store",
+            apiUrl: "/api/chat"
+        };
+    </script>
+    <script src="/widget.js" defer></script>
+</body>
+
+</html>

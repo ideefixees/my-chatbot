@@ -1,0 +1,28 @@
+{% schema %}
+{
+  "name": "Chatbot Widget",
+  "target": "body",
+  "settings": [
+    {
+      "type": "text",
+      "id": "shop_id",
+      "label": "Shop ID",
+      "default": "default-shop"
+    },
+    {
+      "type": "text",
+      "id": "api_url",
+      "label": "API URL",
+      "default": "https://your-chatbot-api.com/api/chat"
+    }
+  ]
+}
+{% endschema %}
+
+<script src="{{ 'chatbot-widget.iife.js' | asset_url }}" defer></script>
+<script>
+  window.ChatbotConfig = {
+    shopId: "{{ block.settings.shop_id }}",
+    apiUrl: "{{ block.settings.api_url }}"
+  };
+</script>
