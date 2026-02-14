@@ -13,7 +13,7 @@ const woo = new WooCommerceRestApi({
     consumerSecret: process.env.WOO_CONSUMER_SECRET || 'cs_2b2cdec7d2ccf9db383c34e8e12afc040619b357',
     version: 'wc/v3',
     queryStringAuth: true
-});
+} as any);
 
 export async function POST(req: Request) {
     try {
