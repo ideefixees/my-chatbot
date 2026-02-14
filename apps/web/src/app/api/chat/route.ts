@@ -3,11 +3,12 @@ import { GoogleGenerativeAI } from '@google/generative-ai';
 import WooCommerceRestApi from "@woocommerce/woocommerce-rest-api";
 
 // Initialize Gemini
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || 'AIzaSyChcmuaXnaguS1aZh7HKgYF2-5Jx1wrQOY');
+// Initialize Gemini
+const getGenAI = () => new GoogleGenerativeAI(process.env.GEMINI_API_KEY || 'AIzaSyChcmuaXnaguS1aZh7HKgYF2-5Jx1wrQOY');
 
 // Initialize WooCommerce
 // Hardcoded fallbacks because .env.local has permission issues in this environment
-const woo = new WooCommerceRestApi({
+const getWoo = () => new WooCommerceRestApi({
     url: process.env.WOO_SITE_URL || 'https://plantaviva.in',
     consumerKey: process.env.WOO_CONSUMER_KEY || 'ck_57be6b725f0a1028a17467f9d1c776a75bd33aa1',
     consumerSecret: process.env.WOO_CONSUMER_SECRET || 'cs_2b2cdec7d2ccf9db383c34e8e12afc040619b357',
@@ -39,6 +40,7 @@ export async function POST(req: Request) {
             if (orderIdMatch) {
                 const orderId = orderIdMatch[0];
                 try {
+                    const woo = getWoo();
                     const response = await woo.get(`orders/${orderId}`);
                     if (response.status === 200) {
                         const order = response.data;
@@ -80,6 +82,7 @@ export async function POST(req: Request) {
 
             if (lowerMsg.includes('find') || lowerMsg.includes('buy') || lowerMsg.includes('search') || lowerMsg.includes('price') || lowerMsg.includes('cost') || lowerMsg.includes('product') || lowerMsg.includes('plant')) {
                 try {
+                    const woo = getWoo();
                     const { data: products } = await woo.get("products", {
                         search: message,
                         per_page: 5,
@@ -112,6 +115,7 @@ export async function POST(req: Request) {
 
             try {
                 // Setup the model
+                const genAI = getGenAI();
                 const model = genAI.getGenerativeModel({ model: "gemini-flash-latest" });
 
                 // Context Prompt
