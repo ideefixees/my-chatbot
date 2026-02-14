@@ -10,7 +10,7 @@ export const wooParams = {
 };
 
 // Check if credentials exist before exporting
-export const woo = new WooCommerceRestApi(wooParams);
+export const woo = new WooCommerceRestApi(wooParams as any);
 
 // Helper to check connection
 export async function checkWooConnection() {
