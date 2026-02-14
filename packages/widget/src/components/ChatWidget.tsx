@@ -44,6 +44,53 @@ const DiscountCard = ({ data }: { data: any }) => (
     </div>
 );
 
+// Product Card Component
+const ProductCard = ({ data }: { data: any }) => (
+    <div style={{
+        minWidth: '150px',
+        maxWidth: '150px',
+        border: '1px solid #e5e7eb',
+        borderRadius: '8px',
+        padding: '10px',
+        backgroundColor: 'white',
+        marginRight: '10px',
+        flexShrink: 0,
+        boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
+    }}>
+        <div style={{ height: '100px', marginBottom: '8px', borderRadius: '4px', overflow: 'hidden', backgroundColor: '#f3f4f6' }}>
+            <img
+                src={data.image || 'https://placehold.co/150x150?text=No+Image'}
+                alt={data.name}
+                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+            />
+        </div>
+        <div style={{ fontSize: '13px', fontWeight: 'bold', color: '#111827', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', marginBottom: '4px' }}>
+            {data.name}
+        </div>
+        <div style={{ fontSize: '12px', color: '#059669', fontWeight: 'bold', marginBottom: '8px' }}>
+            {data.price}
+        </div>
+        <a
+            href={data.link}
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{
+                display: 'block',
+                textAlign: 'center',
+                fontSize: '12px',
+                backgroundColor: '#4f46e5',
+                color: 'white',
+                textDecoration: 'none',
+                padding: '6px',
+                borderRadius: '6px',
+                fontWeight: '500'
+            }}
+        >
+            View Product
+        </a>
+    </div>
+);
+
 export const ChatWidget: React.FC<ComponentProps> = ({ config }) => {
     const [isOpen, setIsOpen] = useState(false);
     const [messages, setMessages] = useState<Message[]>([
@@ -134,11 +181,22 @@ export const ChatWidget: React.FC<ComponentProps> = ({ config }) => {
                                     borderRadius: '12px',
                                     backgroundColor: msg.role === 'user' ? '#4f46e5' : '#e5e7eb',
                                     color: msg.role === 'user' ? 'white' : 'black',
-                                    maxWidth: '80%'
+                                    maxWidth: '85%'
                                 }}>
-                                    {msg.content}
+                                    <div style={{ marginBottom: (msg.type === 'product_list' || msg.type === 'order_status') ? '8px' : '0' }}>
+                                        {msg.content}
+                                    </div>
+
                                     {msg.type === 'order_status' && <OrderCard data={msg.data} />}
                                     {msg.type === 'discount' && <DiscountCard data={msg.data} />}
+
+                                    {msg.type === 'product_list' && (
+                                        <div style={{ display: 'flex', overflowX: 'auto', paddingBottom: '4px', maxWidth: '100%' }}>
+                                            {Array.isArray(msg.data) && msg.data.map((product: any) => (
+                                                <ProductCard key={product.id} data={product} />
+                                            ))}
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                         ))}

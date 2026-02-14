@@ -76,6 +76,8 @@ export async function POST(req: Request) {
         } else {
             // Check if user is looking for products
             let productContext = "";
+            let foundProducts: any[] = [];
+
             if (lowerMsg.includes('find') || lowerMsg.includes('buy') || lowerMsg.includes('search') || lowerMsg.includes('price') || lowerMsg.includes('cost') || lowerMsg.includes('product') || lowerMsg.includes('plant')) {
                 try {
                     const { data: products } = await woo.get("products", {
@@ -85,9 +87,21 @@ export async function POST(req: Request) {
                     });
 
                     if (products && products.length > 0) {
+                        foundProducts = products.map((p: any) => ({
+                            id: p.id,
+                            name: p.name,
+                            price: p.price_html ? p.price_html.replace(/<[^>]*>?/gm, '') : `AED ${p.price}`,
+                            image: p.images && p.images.length > 0 ? p.images[0].src : null,
+                            link: p.permalink
+                        }));
+
                         productContext = "Found these products in store:\n" + products.map((p: any) =>
-                            `- ${p.name}: ${p.price_html ? p.price_html.replace(/<[^>]*>?/gm, '') : p.price} (Stock: ${p.stock_status})`
+                            `- ${p.name}: ${p.price} (Stock: ${p.stock_status})`
                         ).join("\n");
+
+                        // Set the response type to product_list if we found items
+                        type = 'product_list';
+                        data = foundProducts;
                     } else {
                         productContext = "No specific products found for this search.";
                     }
@@ -109,9 +123,14 @@ export async function POST(req: Request) {
 
                 User Message: ${message}
                 
-                If products are found, recommend them by Name and Price.
-                If the context says "No specific products found", ask for more details or suggest popular categories.
-                Use the Store Context data to answer.
+                If products are found:
+                - Briefly introduce them (e.g., "Here are some great options I found for you:").
+                - Do NOT list them in detail in the text, because I am showing them as UI cards.
+                - Just give a helpful summary or ask if they want to know more about a specific one.
+
+                If NO products found:
+                - Apologize and ask for more details.
+                - Suggest popular categories.
                 `;
 
                 const result = await model.generateContent(context);
