@@ -1,21 +1,30 @@
 import { NextResponse } from 'next/server';
 import { GoogleGenerativeAI } from '@google/generative-ai';
+import WooCommerceRestApi from "@woocommerce/woocommerce-rest-api";
 
 // Initialize Gemini
-// Note: In production, use process.env.GEMINI_API_KEY
-// Fallback to the hardcoded/env key
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || 'AIzaSyChcmuaXnaguS1aZh7HKgYF2-5Jx1wrQOY');
+
+// Initialize WooCommerce
+// Hardcoded fallbacks because .env.local has permission issues in this environment
+const woo = new WooCommerceRestApi({
+    url: process.env.WOO_SITE_URL || 'https://plantaviva.in',
+    consumerKey: process.env.WOO_CONSUMER_KEY || 'ck_57be6b725f0a1028a17467f9d1c776a75bd33aa1',
+    consumerSecret: process.env.WOO_CONSUMER_SECRET || 'cs_2b2cdec7d2ccf9db383c34e8e12afc040619b357',
+    version: 'wc/v3',
+    queryStringAuth: true
+});
 
 export async function POST(req: Request) {
     try {
         const body = await req.json();
-        const { message, shopId } = body; // shopId allows multi-tenant context (optional)
+        const { message, shopId } = body;
 
         if (!message) {
             return NextResponse.json({ error: 'Message is required' }, { status: 400 });
         }
 
-        console.log(`Received message from shop ${shopId}: ${message}`);
+        console.log(`Received message: ${message}`);
 
         let reply = "";
         let type = 'text';
@@ -24,21 +33,36 @@ export async function POST(req: Request) {
 
         const lowerMsg = message.toLowerCase();
 
-        // 1. Check for Strict Function Calls / Tools first (High Priority)
-        // Order Tracking Logic
+        // 1. ORDER TRACKING (WooCommerce)
         if (lowerMsg.includes('track') && (lowerMsg.includes('order') || /\d/.test(lowerMsg))) {
-            await new Promise(resolve => setTimeout(resolve, 800)); // Simulate DB
-            type = 'order_status';
-            data = {
-                id: 'ORDER-12345',
-                status: 'In Transit',
-                eta: 'Expected by Friday, Feb 7th',
-                items: ['Classic T-Shirt (L)', 'Denim Jeans (32)'],
-                trackingUrl: '#'
-            };
-            reply = "I found your order! It's currently in transit.";
+            const orderIdMatch = lowerMsg.match(/\d+/);
+            if (orderIdMatch) {
+                const orderId = orderIdMatch[0];
+                try {
+                    const response = await woo.get(`orders/${orderId}`);
+                    if (response.status === 200) {
+                        const order = response.data;
+                        type = 'order_status';
+                        data = {
+                            id: order.id,
+                            status: order.status,
+                            eta: 'Check email for updates',
+                            items: order.line_items.map((i: any) => `${i.name} (x${i.quantity})`),
+                            trackingUrl: '#'
+                        };
+                        reply = `Found order #${order.id}. it is currently ${order.status}.`;
+                    } else {
+                        reply = `I couldn't find order #${orderId}. Please check the number.`;
+                    }
+                } catch (e: any) {
+                    console.error("WooOrder Error", e);
+                    reply = `I couldn't find order #${orderId}. Please check the number.`;
+                }
+            } else {
+                reply = "Please provide the Order ID (e.g., Track order 123).";
+            }
 
-            // Discount Logic
+            // 2. DISCOUNTS 
         } else if (lowerMsg.includes('discount') || lowerMsg.includes('promo') || lowerMsg.includes('coupon')) {
             type = 'discount';
             data = {
@@ -48,19 +72,46 @@ export async function POST(req: Request) {
             };
             reply = "You're in luck! Here is a discount code for your next purchase.";
 
-            // 2. Fallback to Gemini for Natural Language
+            // 3. PRODUCT SEARCH & AI CONTEXT
         } else {
+            // Check if user is looking for products
+            let productContext = "";
+            if (lowerMsg.includes('find') || lowerMsg.includes('buy') || lowerMsg.includes('search') || lowerMsg.includes('price') || lowerMsg.includes('cost') || lowerMsg.includes('product') || lowerMsg.includes('plant')) {
+                try {
+                    const { data: products } = await woo.get("products", {
+                        search: message,
+                        per_page: 5,
+                        status: 'publish'
+                    });
+
+                    if (products && products.length > 0) {
+                        productContext = "Found these products in store:\n" + products.map((p: any) =>
+                            `- ${p.name}: ${p.price_html ? p.price_html.replace(/<[^>]*>?/gm, '') : p.price} (Stock: ${p.stock_status})`
+                        ).join("\n");
+                    } else {
+                        productContext = "No specific products found for this search.";
+                    }
+                } catch (e) {
+                    console.error("WooProduct Error", e);
+                }
+            }
+
             try {
                 // Setup the model
                 const model = genAI.getGenerativeModel({ model: "gemini-flash-latest" });
 
                 // Context Prompt
                 const context = `
-                You are a helpful ecommerce support assistant called "ShopBot".
-                Your goal is to help customers find products, answer shipping questions, and be friendly.
-                Do not make up fake order statuses. If asked about an order without an ID, ask for the ID.
-                Current Store Context: Generic Ecommerce Store.
+                You are a helpful ecommerce support assistant called "ShopBot" for Plantaviva.
+                
+                CONTEXT FROM STORE:
+                ${productContext}
+
                 User Message: ${message}
+                
+                If products are found, recommend them by Name and Price.
+                If the context says "No specific products found", ask for more details or suggest popular categories.
+                Use the Store Context data to answer.
                 `;
 
                 const result = await model.generateContent(context);
@@ -99,14 +150,4 @@ export async function POST(req: Request) {
             }
         );
     }
-}
-
-export async function OPTIONS() {
-    return NextResponse.json({}, {
-        headers: {
-            'Access-Control-Allow-Origin': '*',
-            'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-            'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-        }
-    });
 }
