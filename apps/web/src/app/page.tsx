@@ -41,7 +41,7 @@ export default function Home() {
               </h3>
               <div className="mt-2 text-sm text-gray-500">
                 <p>
-                  To install the chatbot on your store, add the following script tag to your site's header.
+                  To install the chatbot on your store, add the following script tag to your site&apos;s header.
                 </p>
                 <div className="mt-4 p-4 bg-yellow-50 border border-yellow-200 rounded-md">
                   <p className="font-medium text-yellow-800">Your Shop ID: <span className="font-bold">my-store-123</span></p>
